@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model user {
+  id               String             @id @unique @default(uuid())
+  name             String
+  email            String             @unique
+  password         String
+  createdAt        DateTime           @default(now())
+  post             post[]
+  userFollower     userFollow[]       @relation("userFollower")
+  userFollowing    userFollow[]       @relation("userFollowing")
+  message          message[]
+  userChats        userConversation[] @relation("userConversation")
+  senderChats userConversation[]
+}
+
+model post {
+  id        String   @id @unique @default(uuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  author    user     @relation(fields: [authorId], references: [id])
+  authorId  String
+}
+
+model userFollow {
+  id          String @id @unique @default(uuid())
+  follower    user   @relation("userFollowing", fields: [followerId], references: [id])
+  followerId  String
+  following   user   @relation("userFollower", fields: [followingId], references: [id])
+  followingId String
+
+  @@unique([followerId, followingId])
+}
+
+model conversation {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messages         message[]
+  createdAt        DateTime           @default(now())
+  userConversation userConversation[]
+}
+
+model userConversation {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user           user         @relation("userConversation", fields: [userId], references: [id])
+  userId         String
+  receiver       user         @relation(fields: [receiverId], references: [id])
+  receiverId     String
+  conversation   conversation @relation(fields: [conversationId], references: [id])
+  conversationId String       @db.Uuid
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, conversationId, receiverId])
+}
+
+model message {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content        String
+  sender         user         @relation(fields: [senderId], references: [id])
+  senderId       String
+  conversation   conversation @relation(fields: [conversationId], references: [id])
+  conversationId String       @db.Uuid
+  createdAt      DateTime     @default(now())
+}
